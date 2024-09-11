@@ -7,24 +7,66 @@ Authors: **Liangming Pan, Wenhu Chen, Min-Yen Kan, William Yang Wang**.
 
 With a rise in false, inaccurate, and misleading information in propaganda, news, and social media, real-world Question Answering (QA) systems face the challenges of synthesizing and reasoning over misinformation-polluted contexts to derive correct answers. This urgency gives rise to the need to make QA systems robust to misinformation, a topic previously unexplored. We study the risk of misinformation to QA models by investigating the sensitivity of open-domain QA models to corpus pollution with misinformation documents. We curate both human-written and model-generated false documents that we inject into the evidence corpus of QA models and assess the impact on the performance of these systems. Experiments show that QA models are vulnerable to even small amounts of evidence contamination brought by misinformation, with large absolute performance drops on all models. Misinformation attack brings more threat when fake documents are produced at scale by neural models or the attacker targets hacking specific questions of interest. To defend against such a threat, we discuss the necessity of building a misinformation-aware QA system that integrates question-answering and misinformation detection in a joint fashion.
 
+## Environment Setup
+
+- 3.7.0 >= Python < 3.11.0 is required
+
+- Install PyTorch 1.13.0 with CUDA 11.3
+
+```bash
+pip install 'torch~=1.13.0' --extra-index-url https://download.pytorch.org/whl/cu113
+```
+
+- We are using [PrimeQA](https://github.com/primeqa/primeqa) as for the QA model implemenation. Add primeqa to the PYTHONPATH.
+
+```bash
+export PYTHONPATH="./primeqa:$PYTHONPATH"
+```
+
+- Install the required packages
+
+```bash
+pip install faiss-cpu~=1.7.2
+pip install faiss-gpu~=1.7.2
+pip install pyserini~=0.20.0
+pip install transformers~=4.24.0
+pip install datasets[apache-beam]~=2.3.2
+```
+
 ## Pulloted Corpus with Misinformation
 
-We release the 1M Wikipedia paragraphs with misinformation (*Polluted-Hybrid*) as well as the 1M clean Wikipedia paragraphs (*Clean*) in the `./corpus` folder. 
+We release the 1M Wikipedia paragraphs with misinformation (*Polluted-Targeted*) as well as the 1M clean Wikipedia paragraphs (*Clean*) in the `./corpus` folder. 
 
-**Polluted-Hybrid**: The 1M Wikipedia paragraphs polluted with misinformation (`noisy_wiki_1M/corpus.jsonl`). Each paragraph is a Dict object with the following fields:
+**Polluted-Hybrid**: The 1M Wikipedia paragraphs polluted with misinformation (`wiki_noisy_1M/corpus.json`). Each paragraph is a Dict object with the following fields:
 
 ```python
 {
-    '_id': 'Unique ID of the Wikipedia paragraph',
-    'title': 'Title and type of the Wikipedia paragraph',
-    'text': 'Text of the Wikipedia paragraph',
-    'metadata': 'Metadata of the Wikipedia paragraph'
+    'id': 'Unique ID of the Wikipedia paragraph',
+    'contents': 'Text of the Wikipedia paragraph'
 }
 ```
 
-The `title` filed is in the format of `<paragraph_title>:::<paragraph_type>`, where `<paragraph_title>` is the title of the Wikipedia paragraph and `<paragraph_type>` is the type of the paragraph. For example, the type `FAKE_Human` indicates that the paragraph is a human-annotated fake paragraph. 
+The id with the postfix `-FAKE` indicates that the paragraph is a fake paragraph, for example: `1020959:::Super_Bowl_50-FAKE`.
 
-**Clean**: The 1M clean Wikipedia paragraphs (`clean_wiki_1M/corpus.jsonl`). Each paragraph is a Dict object with the same fields as the *Polluted-Hybrid*. 
+### Indexing the corpus
+
+To run retrieval-based QA models on the corpus, we need to first index the corpus. We provide the indexing script in `index_corpus.sh`. Run the following command to index the corpus:
+
+```bash
+bash index_corpus.sh <corpus_name [wiki_noisy_1M | wiki_clean_1M]>
+```
+
+**Clean**: The 1M clean Wikipedia paragraphs (`wiki_clean_1M/corpus.json`). Each paragraph is a Dict object with the same fields as the *Polluted-Hybrid*. 
+
+## QA Under Misinformation Attack
+
+To evaluate the QA model's performance under misinformation attack, run the `run_odqa.sh` script as follows:
+
+```bash
+bash run_odqa.sh <device_number> <corpus_name [wiki_noisy_1M | wiki_clean_1M]> <qa_model_name>
+```
+
+The results are saved into the `./experiments/` folder. Call `evaluate.py` to evaluate the results. 
 
 ## Reference
 Please cite the paper in the following format if you use this code during your research.
